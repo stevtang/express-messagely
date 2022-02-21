@@ -29,7 +29,6 @@ class User {
   /** Authenticate: is username/password valid? Returns boolean. */
 
   static async authenticate(username, password) {
-
     const result = await db.query(
       `SELECT password
       FROM users
@@ -40,9 +39,7 @@ class User {
     const userPassword = result.rows[0];
 
     if (userPassword) {
-
-      if (await bcrypt.compare(password, userPassword) === true) {
-
+      if ((await bcrypt.compare(password, userPassword)) === true) {
         return true;
       }
     }
@@ -54,9 +51,7 @@ class User {
 
   /** Update last_login_at for user */
 
-  static async updateLoginTimestamp(username) { 
-
-
+  static async updateLoginTimestamp(username) {
     const result = db.query(
       `UPDATE users
       SET last_login_at = current_timestamp
@@ -70,14 +65,12 @@ class User {
     // TODO: Do we need a return value from this?
 
     if (!user) throw new NotFoundError(`No such user: ${username}`);
-
   }
 
   /** All: basic info on all users:
    * [{username, first_name, last_name}, ...] */
 
-  static async all() { 
-
+  static async all() {
     const result = db.query(
       `SELECT username, first_name, last_name
       FROM users`
@@ -98,15 +91,13 @@ class User {
    *          last_login_at } */
 
   static async get(username) {
-
     const result = db.query(
       `SELECT username, first_name, last_name, phone, join_at, last_login_at
       FROM users
       WHERE username = $1`,
       [username]
     );
-
-   }
+  }
 
   /** Return messages from this user.
    *
@@ -116,28 +107,48 @@ class User {
    *   {username, first_name, last_name, phone}
    */
 
-
   // User.messagesFrom("sam")
 
   static async messagesFrom(username) {
-
-    const messageResult = db.query(
+    const to_users = {};
+    const messageResult = await db.query(
       `SELECT id, to_user, body, sent_at, read_at
       FROM messages
       WHERE from_username = $1`,
       [username]
     );
 
+    for (const row of messageResult) {
+      const userResult = await db.query(
+        `SELECT username, first_name, last_name, phone
+          FROM users 
+          WHERE username = $1`,
+        [row.to_user]
+      );
+      to_users[row.to_user] = userResult.rows[0];
+    }
     const messages = messageResult.rows;
 
+    const fromMessages = messages.map((r) => {
+      const returnObject = {
+        id: messages.id,
+        to_user: {
+          username: to_users.username,
+          first_name: to_users.first_name,
+          last_name: to_users.last_name,
+          phone: to_users.phone,
+        },
+        body: messages.body,
+        sent_at: messages.sent_at,
+        read_at: messages.read_at,
+      };
+      return returnObject;
+    });
 
     // TODO: Write a map to get the toUser from each result row
     // TODO: SELECT for each toUser to get the user data
     // TODO: join the results from each
-
-
-
-   }
+  }
 
   /** Return messages to this user.
    *
@@ -147,7 +158,7 @@ class User {
    *   {id, first_name, last_name, phone}
    */
 
-  static async messagesTo(username) { }
+  static async messagesTo(username) {}
 }
 
 module.exports = User;
