@@ -4,6 +4,13 @@ const Router = require("express").Router;
 const router = new Router();
 
 
+router.post('/register', async function(req, res){
+    const {username, password, first_name, last_name, phone} = req.body;
+    const newUser = User.register(username, password, first_name, last_name, phone);
+
+
+})
+
 /** GET / - get list of users.
  *
  * => {users: [{username, first_name, last_name}, ...]}
