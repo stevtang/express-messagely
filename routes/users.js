@@ -8,6 +8,7 @@ router.post('/register', async function(req, res){
     const {username, password, first_name, last_name, phone} = req.body;
     const newUser = User.register(username, password, first_name, last_name, phone);
 
+    // TODO: Finish this route
 
 })
 
