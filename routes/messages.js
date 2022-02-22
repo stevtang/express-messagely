@@ -1,6 +1,8 @@
 "use strict";
 
+const { ensureLoggedIn } = require("../middleware/auth");
 const Message = require("../models/message");
+const { UnauthorizedError } = require("../expressError");
 
 const Router = require("express").Router;
 const router = new Router();
@@ -9,15 +11,15 @@ const router = new Router();
 
 
 
-router.post('/create', async function(req, res){
+router.post('/create', async function (req, res) {
 
+    const { from_username, to_username, body } = req.body;
 
-    const {from_username, to_username, body} = req.body;
-
-    const newMessage = await Message.create({from_username, to_username, body});
+    const newMessage = await Message.create({ from_username, to_username, body });
 
     return res.json(newMessage);
-})
+});
+
 /** GET /:id - get detail of message.
  *
  * => {message: {id,
@@ -31,6 +33,21 @@ router.post('/create', async function(req, res){
  *
  **/
 
+router.post('/:id', ensureLoggedIn, async function (req, res) {
+
+    const id = req.params.id;
+
+    const message = await Message.get(id);
+
+    if (res.locals.user.username !=
+        message.to_user.username &&
+        message.from_user.username) {
+        throw new UnauthorizedError();
+    }
+
+    return res.json({ message });
+
+});
 
 /** POST / - post message.
  *
@@ -38,6 +55,20 @@ router.post('/create', async function(req, res){
  *   {message: {id, from_username, to_username, body, sent_at}}
  *
  **/
+
+router.post("/", ensureLoggedIn, async function (req, res) {
+
+    const { to_username, body } = req.body;
+
+    const from_username = res.locals.user.username;
+
+    const message = await Message.create({ from_username, to_username, body });
+
+    return res.json({ message });
+
+});
+
+
 
 
 /** POST/:id/read - mark message as read:
