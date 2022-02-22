@@ -113,22 +113,26 @@ class User {
   static async messagesFrom(username) {
     const to_users = {};
     const messageResult = await db.query(
-      `SELECT id, to_user, body, sent_at, read_at
-      FROM messages
-      WHERE from_username = $1`,
+      `SELECT m.id, m.to_user, m.body, m.sent_at, m.read_at, u.username, u.first_name, u.last_name, u.phone
+      FROM messages AS m JOIN users AS u ON m.to_user = u.username
+      WHERE m.from_username = $1`,
       [username]
     );
-
-    for (const row of messageResult) {
-      const userResult = await db.query(
-        `SELECT username, first_name, last_name, phone
-          FROM users 
-          WHERE username = $1`,
-        [row.to_user]
-      );
-      to_users[row.to_user] = userResult.rows[0];
-    }
     const messages = messageResult.rows;
+    console.log(`MESSAGE RESULTS: ${messages}`);
+
+
+
+    // for (const row of messageResult) {
+    //   let userResult = await db.query(
+    //     `SELECT username, first_name, last_name, phone
+    //       FROM users 
+    //       WHERE username = $1`,
+    //     [row.to_user]
+    //   );
+    //   to_users[row.to_user] = userResult.rows[0];
+    // }
+    // console.log(`TO USER RESULTS: ${to_users}`);
 
     const fromMessages = messages.map((r) => {
       const returnObject = {
@@ -145,7 +149,7 @@ class User {
       };
       return returnObject;
     });
-
+    return fromMessages;
    // TODO: Come back to this after initial data entry routes are done
   }
 
