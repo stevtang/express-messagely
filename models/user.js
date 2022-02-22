@@ -37,10 +37,10 @@ class User {
       [username]
     );
 
-    const userPassword = result.rows[0];
+    const user = result.rows[0];
 
-    if (userPassword) {
-      if ((await bcrypt.compare(password, userPassword)) === true) {
+    if (user) {
+      if ((await bcrypt.compare(password, user.password)) === true) {
         return true;
       }
     }
@@ -77,7 +77,7 @@ class User {
       FROM users`
     );
 
-    const users = results.rows;
+    const users = result.rows;
 
     return users;
   }
@@ -92,12 +92,13 @@ class User {
    *          last_login_at } */
 
   static async get(username) {
-    const result = db.query(
+    const result = await db.query(
       `SELECT username, first_name, last_name, phone, join_at, last_login_at
       FROM users
       WHERE username = $1`,
       [username]
     );
+    return result.rows[0];
   }
 
   /** Return messages from this user.
