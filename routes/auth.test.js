@@ -38,6 +38,7 @@ describe("Auth Routes Test", function () {
         });
 
       let token = response.body.token;
+      console.log("TOKEN IN TEST", token);
       expect(jwt.decode(token)).toEqual({
         username: "bob",
         iat: expect.any(Number)
