@@ -1,23 +1,18 @@
 "use strict";
 
-const { ensureLoggedIn } = require("../middleware/auth");
+const { ensureLoggedIn, ensureCorrectUser } = require("../middleware/auth");
 const Message = require("../models/message");
 const { UnauthorizedError } = require("../expressError");
 
 const Router = require("express").Router;
 const router = new Router();
 
+router.post("/create", async function (req, res) {
+  const { from_username, to_username, body } = req.body;
 
+  const newMessage = await Message.create({ from_username, to_username, body });
 
-
-
-router.post('/create', async function (req, res) {
-
-    const { from_username, to_username, body } = req.body;
-
-    const newMessage = await Message.create({ from_username, to_username, body });
-
-    return res.json(newMessage);
+  return res.json(newMessage);
 });
 
 /** GET /:id - get detail of message.
@@ -33,20 +28,19 @@ router.post('/create', async function (req, res) {
  *
  **/
 
-router.post('/:id', ensureLoggedIn, async function (req, res) {
+router.post("/:id", ensureLoggedIn, async function (req, res) {
+  const id = req.params.id;
 
-    const id = req.params.id;
+  const message = await Message.get(id);
 
-    const message = await Message.get(id);
+  if (
+    res.locals.user.username != message.to_user.username &&
+    message.from_user.username
+  ) {
+    throw new UnauthorizedError();
+  }
 
-    if (res.locals.user.username !=
-        message.to_user.username &&
-        message.from_user.username) {
-        throw new UnauthorizedError();
-    }
-
-    return res.json({ message });
-
+  return res.json({ message });
 });
 
 /** POST / - post message.
@@ -57,19 +51,14 @@ router.post('/:id', ensureLoggedIn, async function (req, res) {
  **/
 
 router.post("/", ensureLoggedIn, async function (req, res) {
+  const { to_username, body } = req.body;
 
-    const { to_username, body } = req.body;
+  const from_username = res.locals.user.username;
 
-    const from_username = res.locals.user.username;
+  const message = await Message.create({ from_username, to_username, body });
 
-    const message = await Message.create({ from_username, to_username, body });
-
-    return res.json({ message });
-
+  return res.json({ message });
 });
-
-
-
 
 /** POST/:id/read - mark message as read:
  *
@@ -79,5 +68,15 @@ router.post("/", ensureLoggedIn, async function (req, res) {
  *
  **/
 
+router.post("/:id/read", ensureLoggedIn, async function (req, res) {
+  const id = req.params.id;
+  const messageInfo = await Message.get(id);
+  if (res.locals.user.username !== messageInfo.to_user.username) {
+    throw new UnauthorizedError();
+  } else {
+    const message = await Message.markRead(id);
+    return res.json({ message });
+  }
+});
 
 module.exports = router;
