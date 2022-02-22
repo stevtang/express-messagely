@@ -1,15 +1,18 @@
 "use strict";
 
+const db = require("../db");
+const User = require("../models/user");
+
 const Router = require("express").Router;
 const router = new Router();
 
 
 router.post('/register', async function(req, res){
     const {username, password, first_name, last_name, phone} = req.body;
-    const newUser = User.register(username, password, first_name, last_name, phone);
 
-    // TODO: Finish this route
+    const newUser = await User.register({username, password, first_name, last_name, phone});
 
+    return res.json(newUser);
 })
 
 /** GET / - get list of users.
