@@ -53,7 +53,7 @@ class User {
   /** Update last_login_at for user */
 
   static async updateLoginTimestamp(username) {
-    const result = db.query(
+    const result = await db.query(
       `UPDATE users
       SET last_login_at = current_timestamp
       WHERE username = $1
@@ -72,7 +72,7 @@ class User {
    * [{username, first_name, last_name}, ...] */
 
   static async all() {
-    const result = db.query(
+    const result = await db.query(
       `SELECT username, first_name, last_name
       FROM users`
     );
@@ -108,13 +108,11 @@ class User {
    *   {username, first_name, last_name, phone}
    */
 
-  // User.messagesFrom("sam")
-
   static async messagesFrom(username) {
-    const to_users = {};
     const messageResult = await db.query(
-      `SELECT m.id, m.to_user, m.body, m.sent_at, m.read_at, u.username, u.first_name, u.last_name, u.phone
-      FROM messages AS m JOIN users AS u ON m.to_user = u.username
+      `SELECT m.id, m.to_username, m.body, m.sent_at, 
+      m.read_at, u.username, u.first_name, u.last_name, u.phone
+      FROM messages AS m JOIN users AS u ON m.to_username = u.username
       WHERE m.from_username = $1`,
       [username]
     );
@@ -122,35 +120,47 @@ class User {
     console.log(`MESSAGE RESULTS: ${messages}`);
 
 
+    const messagesFrom = [];
 
-    // for (const row of messageResult) {
-    //   let userResult = await db.query(
-    //     `SELECT username, first_name, last_name, phone
-    //       FROM users 
-    //       WHERE username = $1`,
-    //     [row.to_user]
-    //   );
-    //   to_users[row.to_user] = userResult.rows[0];
-    // }
-    // console.log(`TO USER RESULTS: ${to_users}`);
-
-    const fromMessages = messages.map((r) => {
-      const returnObject = {
-        id: messages.id,
+    for (let message of messages) {
+      const returnObj = {
+        id : message.id,
         to_user: {
-          username: to_users.username,
-          first_name: to_users.first_name,
-          last_name: to_users.last_name,
-          phone: to_users.phone,
+          username: message.username,
+          first_name: message.first_name,
+          last_name: message.last_name,
+          phone: message.phone,
         },
-        body: messages.body,
-        sent_at: messages.sent_at,
-        read_at: messages.read_at,
-      };
-      return returnObject;
-    });
-    return fromMessages;
-   // TODO: Come back to this after initial data entry routes are done
+        body : message.body,
+        sent_at: message.sent_at,
+        read_at: message.read_at,
+      }
+
+      messagesFrom.push(returnObj);
+    }
+
+    console.log("MESSAGES FROM", messagesFrom)
+
+    return messagesFrom;
+
+
+    // const fromMessages = messages.map((r) => {
+    //   const returnObject = {
+    //     id: messages.id,
+    //     to_user: {
+    //       username: to_users.username,
+    //       first_name: to_users.first_name,
+    //       last_name: to_users.last_name,
+    //       phone: to_users.phone,
+    //     },
+    //     body: messages.body,
+    //     sent_at: messages.sent_at,
+    //     read_at: messages.read_at,
+    //   };
+    //   return returnObject;
+    // });
+    // return fromMessages;
+    // TODO: Come back to this after initial data entry routes are done
   }
 
   /** Return messages to this user.
@@ -161,7 +171,45 @@ class User {
    *   {id, first_name, last_name, phone}
    */
 
-  static async messagesTo(username) {}
+  static async messagesTo(username) {
+    
+    const messageResult = await db.query(
+      `SELECT m.id, m.from_username, m.body, m.sent_at, 
+      m.read_at, u.username, u.first_name, u.last_name, u.phone
+      FROM messages AS m JOIN users AS u ON m.from_username = u.username
+      WHERE m.to_username = $1`,
+      [username]
+    );
+    const messages = messageResult.rows;
+    console.log(`MESSAGE RESULTS: ${messages}`);
+
+
+    const messagesTo = [];
+
+    for (let message of messages) {
+      const returnObj = {
+        id : message.id,
+        from_user: {
+          username: message.username,
+          first_name: message.first_name,
+          last_name: message.last_name,
+          phone: message.phone,
+        },
+        body : message.body,
+        sent_at: message.sent_at,
+        read_at: message.read_at,
+      }
+
+      messagesTo.push(returnObj);
+    }
+
+    console.log("MESSAGES TO", messagesTo)
+
+    return messagesTo;
+
+
+
+  }
 }
 
 module.exports = User;
